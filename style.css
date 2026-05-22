@@ -1,4 +1,6 @@
-#game-container { text-align: center; margin-top: 20px; }
-canvas { background: #333; border: 5px solid #555; }
-#controls { margin-top: 10px; }
-button { padding: 15px 25px; margin: 0 5px; cursor: pointer; }
+body { margin: 0; overflow: hidden; background: #333; font-family: sans-serif; }
+#gameCanvas { display: block; width: 100vw; height: 100vh; background: #444; }
+#ui-layer { position: absolute; bottom: 20px; width: 100%; display: flex; flex-direction: column; align-items: center; }
+#controls { display: flex; gap: 15px; }
+button { padding: 20px 30px; font-size: 18px; border-radius: 10px; border: none; background: #fff; touch-action: manipulation; }
+#startBtn { margin-bottom: 20px; background: #ff4444; color: #fff; font-weight: bold; }
