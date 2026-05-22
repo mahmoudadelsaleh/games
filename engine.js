@@ -1,16 +1,39 @@
-// المتغيرات الأساسية للمنظور
-const perspective = 0.8; // عامل التلاشي
-const vanishingPointX = canvas.width / 2;
-const vanishingPointY = canvas.height / 3;
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let gameRunning = false, playerX = 0, gameSpeed = 5, enemies = [];
 
-function drawPerspectiveCar(car) {
-    // حساب المقياس (Scale) بناءً على بعد السيارة (z)
-    // كلما زادت Z، صغرت السيارة وتحركت نحو نقطة التلاشي
-    let scale = 1 / (1 + car.z * perspective);
-    let projectedX = (car.x - vanishingPointX) * scale + vanishingPointX;
-    let projectedY = (car.y - vanishingPointY) * scale + vanishingPointY;
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight * 0.85; }
+window.onresize = resize; resize();
+
+function drawCar(x, z, color) {
+    let scale = 1 / (1 + z * 0.8);
+    let px = x * scale + canvas.width / 2;
+    let py = (canvas.height / 3) + (z * 20 * scale);
+    let w = 50 * scale, h = 80 * scale;
     
-    // رسم السيارة بناءً على الإسقاط الجديد
-    ctx.fillStyle = car.color;
-    ctx.fillRect(projectedX - (25 * scale), projectedY - (40 * scale), 50 * scale, 80 * scale);
+    ctx.fillStyle = color;
+    ctx.fillRect(px - w/2, py - h/2, w, h);
+    ctx.fillStyle = "#222"; // Roof
+    ctx.fillRect(px - w/3, py - h/4, w*0.6, h*0.3);
 }
+
+function update() {
+    if (!gameRunning) return;
+    enemies.forEach(e => e.z += gameSpeed);
+    enemies = enemies.filter(e => e.z < 20);
+    if (Math.random() < 0.05) enemies.push({x: (Math.floor(Math.random()*3)-1)*100, z: 0, color: 'red'});
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    enemies.forEach(e => drawCar(e.x, e.z, e.color));
+    drawCar(playerX, 10, 'blue');
+    requestAnimationFrame(update);
+}
+
+document.getElementById('left').ontouchstart = () => playerX -= 50;
+document.getElementById('right').ontouchstart = () => playerX += 50;
+document.getElementById('accel').ontouchstart = () => gameSpeed = 10;
+document.getElementById('accel').ontouchend = () => gameSpeed = 5;
+document.getElementById('brake').ontouchstart = () => gameSpeed = 2;
+document.getElementById('brake').ontouchend = () => gameSpeed = 5;
+document.getElementById('newGame').onclick = () => { gameRunning = true; update(); };
+document.getElementById('pause').onclick = () => gameRunning = !gameRunning;
