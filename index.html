@@ -1,23 +1,636 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Racing</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>3D Racing - نجوم وكلاكس كل 10 سيارات</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a2f1f, #0a1f0f);
+            overflow: hidden;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            touch-action: none;
+        }
+
+        #gameContainer {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            background: #0a2a12;
+            position: relative;
+        }
+
+        #scorePanel {
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(10px);
+            padding: 8px 20px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffd966;
+            font-family: monospace;
+            border-bottom: 3px solid #f39c12;
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #scorePanel span {
+            background: #2c3e50;
+            padding: 4px 16px;
+            border-radius: 50px;
+            display: inline-block;
+        }
+
+        .star-counter {
+            background: #f39c12;
+            color: #2c3e50;
+            padding: 4px 12px;
+            border-radius: 50px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 18px;
+        }
+
+        .canvas-area {
+            flex: 1;
+            position: relative;
+            background: #1b4d2e;
+            min-height: 0;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .safety-badge {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            color: #2ecc71;
+            font-size: 18px;
+            font-weight: bold;
+            font-family: monospace;
+            padding: 5px 16px;
+            border-radius: 40px;
+            border: 2px solid #2ecc71;
+            z-index: 100;
+            text-align: center;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .star-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 200;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 20px gold;
+        }
+
+        .controls-bar {
+            background: #0a0f0a;
+            padding: 10px 16px;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr 1fr;
+            gap: 12px;
+            border-top: 4px solid #e67e22;
+            z-index: 15;
+        }
+
+        .ctrl-btn {
+            border: none;
+            border-radius: 60px;
+            padding: 12px 0;
+            font-size: 26px;
+            font-weight: bold;
+            font-family: monospace;
+            cursor: pointer;
+            transition: 0.07s linear;
+            text-align: center;
+            color: white;
+            box-shadow: 0 5px 0 rgba(0, 0, 0, 0.3);
+            touch-action: manipulation;
+        }
+
+        .ctrl-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        #leftBtn {
+            background: linear-gradient(145deg, #2c6e9e, #1f5680);
+            font-size: 30px;
+        }
+
+        #rightBtn {
+            background: linear-gradient(145deg, #2c6e9e, #1f5680);
+            font-size: 30px;
+        }
+
+        #speedCtrlBtn {
+            background: linear-gradient(145deg, #e67e22, #b85e0a);
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 550px) {
+            .ctrl-btn { padding: 8px 0; font-size: 22px; }
+            #speedCtrlBtn { font-size: 24px; }
+            .safety-badge { font-size: 14px; padding: 4px 12px; }
+            .star-effect { font-size: 45px; }
+        }
+    </style>
 </head>
 <body>
-    <div id="game-wrapper">
-        <canvas id="gameCanvas"></canvas>
+<div id="gameContainer">
+    <div id="scorePanel">
+        <span>🏁 تخطيت: <span id="scoreValue">0</span> سيارة 🏁</span>
+        <div class="star-counter">⭐ <span id="starCount">0</span></div>
     </div>
-    <div id="controls-panel">
-        <button id="newGame" class="btn">New</button>
-        <button id="left" class="btn">◀</button>
-        <button id="accel" class="btn">Accel</button>
-        <button id="brake" class="btn">Brake</button>
-        <button id="right" class="btn">▶</button>
-        <button id="pause" class="btn">Pause</button>
+    <div class="canvas-area">
+        <canvas id="racingCanvas"></canvas>
+        <div id="safetyBadge" class="safety-badge" style="display: none;">🛡️ أمان 3</div>
+        <div id="starEffect" class="star-effect">⭐</div>
     </div>
-    <script src="engine.js"></script>
+    <div class="controls-bar">
+        <button id="leftBtn" class="ctrl-btn">◀ يسار</button>
+        <button id="speedCtrlBtn" class="ctrl-btn">⚡ 1</button>
+        <button id="rightBtn" class="ctrl-btn">يمين ▶</button>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const canvas = document.getElementById('racingCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreSpan = document.getElementById('scoreValue');
+        const starCountSpan = document.getElementById('starCount');
+        const safetyBadge = document.getElementById('safetyBadge');
+        const starEffect = document.getElementById('starEffect');
+
+        let playerLane = 1;
+        let currentSpeedLevel = 0;
+        let totalScore = 0;
+        let starTotal = 0;      // عدد النجمات (كل 10 سيارات)
+        let isGameAlive = true;
+        let isInvincible = true;
+        let animationRequestId = null;
+        let countdownInterval = null;
+        
+        // مؤقت لإخفاء تأثير النجمة
+        let starTimeout = null;
+
+        const speedLevels = [0.1, 0.2, 0.35, 0.5, 0.7];
+        let currentGameSpeed = speedLevels[0];
+
+        let enemiesVehicles = [];
+        let canvasW = 0, canvasH = 0;
+        const PLAYER_FIXED_Y_OFFSET = 85;
+
+        // دالة لتشغيل صوت الكلاكس
+        function playHonkSound() {
+            try {
+                // إنشاء عنصر audio مؤقت
+                const audio = new Audio();
+                // استخدام AudioContext كبديل (أكثر توافقاً)
+                // نبضة صوتية بسيطة باستخدام Web Audio API (لا تحتاج ملفات)
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 880;
+                gainNode.gain.value = 0.3;
+                
+                oscillator.start();
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
+                oscillator.stop(audioContext.currentTime + 0.5);
+                
+                // إعادة تشغيل AudioContext إذا كان معلقاً
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+            } catch(e) {
+                console.log("صوت غير مدعوم في هذا المتصفح");
+            }
+        }
+
+        // دالة إظهار النجمة
+        function showStar() {
+            starEffect.style.opacity = '1';
+            starEffect.style.transform = 'translate(-50%, -50%) scale(1.2)';
+            
+            if (starTimeout) clearTimeout(starTimeout);
+            starTimeout = setTimeout(() => {
+                starEffect.style.opacity = '0';
+                starEffect.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 500);
+        }
+
+        // دالة إضافة نجمة جديدة
+        function addStar() {
+            starTotal++;
+            starCountSpan.innerText = starTotal;
+            showStar();
+            playHonkSound();
+        }
+
+        // التحقق من نجمة جديدة (كل 10 سيارات)
+        function checkStarMilestone(newScore) {
+            if (newScore > 0 && newScore % 10 === 0) {
+                addStar();
+            }
+        }
+
+        function resetEnemies() {
+            enemiesVehicles = [];
+            for(let i = 0; i < 6; i++) {
+                enemiesVehicles.push({
+                    lane: Math.floor(Math.random() * 3),
+                    y: -80 - (i * 140),
+                    width: 0,
+                    height: 0,
+                    x: 0
+                });
+            }
+        }
+
+        function updateCanvasSize() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvasW = rect.width;
+            canvasH = rect.height;
+            canvas.width = canvasW;
+            canvas.height = canvasH;
+        }
+
+        function getCarX(laneIndex, yPos) {
+            const horizonY = canvasH * 0.12;
+            const bottomY = canvasH;
+            
+            let progress = (yPos - horizonY) / (bottomY - horizonY);
+            progress = Math.min(Math.max(progress, 0), 1);
+            
+            const topRoadWidth = canvasW * 0.18;
+            const bottomRoadWidth = canvasW * 0.84;
+            const currentRoadWidth = topRoadWidth + (bottomRoadWidth - topRoadWidth) * progress;
+            
+            const roadStartX = (canvasW / 2) - (currentRoadWidth / 2);
+            const laneWidth = currentRoadWidth / 3;
+            
+            return roadStartX + (laneIndex * laneWidth) + (laneWidth / 2);
+        }
+
+        function getCarAngle(lane, yPos) {
+            const horizonY = canvasH * 0.12;
+            const bottomY = canvasH;
+            
+            let progress = (yPos - horizonY) / (bottomY - horizonY);
+            progress = Math.min(Math.max(progress, 0), 1);
+            
+            let maxAngle = 0.2;
+            let depthFactor = Math.min(1, progress * 1.2);
+            let laneFactor = (1 - lane) * 0.7;
+            let angle = laneFactor * maxAngle * depthFactor;
+            
+            return angle;
+        }
+
+        function getCarScale(yPos) {
+            const minScale = 0.25;
+            const maxScale = 1.0;
+            return minScale + (yPos / canvasH) * (maxScale - minScale);
+        }
+
+        function calculateOverlapPercentage(rect1, rect2) {
+            const left = Math.max(rect1.x, rect2.x);
+            const right = Math.min(rect1.x + rect1.w, rect2.x + rect2.w);
+            const top = Math.max(rect1.y, rect2.y);
+            const bottom = Math.min(rect1.y + rect1.h, rect2.y + rect2.h);
+            
+            if (left >= right || top >= bottom) return 0;
+            
+            const overlapArea = (right - left) * (bottom - top);
+            const rect1Area = rect1.w * rect1.h;
+            
+            return (overlapArea / rect1Area) * 100;
+        }
+
+        function drawCar(lane, yPosition, isOpponent = true) {
+            const scale = getCarScale(yPosition);
+            const carX = getCarX(lane, yPosition);
+            const carWidth = 50 * scale;
+            const carHeight = 75 * scale;
+            const angle = getCarAngle(lane, yPosition);
+            
+            if(isOpponent) {
+                const enemy = enemiesVehicles.find(e => Math.abs(e.y - yPosition) < 10);
+                if(enemy) {
+                    enemy.width = carWidth;
+                    enemy.height = carHeight;
+                    enemy.x = carX;
+                }
+            }
+            
+            const mainColor = isOpponent ? '#e63946' : '#2c7da0';
+            const lightColor = isOpponent ? '#ff8c00' : '#61dafb';
+            
+            ctx.save();
+            ctx.translate(carX, yPosition);
+            ctx.rotate(angle);
+            
+            ctx.beginPath();
+            ctx.moveTo(-carWidth/2.2, carHeight/3.2);
+            ctx.lineTo(carWidth/2.2, carHeight/3.2);
+            ctx.lineTo(carWidth/2.6, -carHeight/2.3);
+            ctx.lineTo(-carWidth/2.6, -carHeight/2.3);
+            ctx.closePath();
+            
+            const grad = ctx.createLinearGradient(-carWidth/3, -carHeight/5, carWidth/3, carHeight/4);
+            grad.addColorStop(0, mainColor);
+            grad.addColorStop(1, isOpponent ? '#b91c2c' : '#1f6390');
+            ctx.fillStyle = grad;
+            ctx.fill();
+            
+            ctx.fillStyle = '#b5e4ff';
+            ctx.fillRect(-carWidth/3, -carHeight/5, carWidth/1.6, carHeight/5.5);
+            
+            ctx.fillStyle = '#1e2a3a';
+            ctx.fillRect(-carWidth/2, carHeight/5, carWidth/5, carHeight/7);
+            ctx.fillRect(carWidth/2.8, carHeight/5, carWidth/5, carHeight/7);
+            
+            ctx.fillStyle = lightColor;
+            ctx.fillRect(-carWidth/2.4, carHeight/4, carWidth/1.2, carHeight/11);
+            
+            ctx.restore();
+            
+            if(!isOpponent && isInvincible && isGameAlive) {
+                ctx.save();
+                ctx.translate(carX, yPosition);
+                ctx.rotate(angle);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, carWidth/1.6, carHeight/2, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(46, 204, 113, 0.25)';
+                ctx.fill();
+                ctx.restore();
+            }
+            
+            return { x: carX - carWidth/2.2, y: yPosition - carHeight/2.3, w: carWidth, h: carHeight };
+        }
+
+        function drawRaceTrack() {
+            const horizon = canvasH * 0.12;
+            
+            ctx.beginPath();
+            ctx.moveTo(canvasW/2 - canvasW*0.08, horizon);
+            ctx.lineTo(canvasW/2 + canvasW*0.08, horizon);
+            ctx.lineTo(canvasW/2 + canvasW*0.43, canvasH);
+            ctx.lineTo(canvasW/2 - canvasW*0.43, canvasH);
+            ctx.fillStyle = '#2c3e50';
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.moveTo(canvasW/2 - canvasW*0.07, horizon);
+            ctx.lineTo(canvasW/2 - canvasW*0.41, canvasH);
+            ctx.strokeStyle = '#f5b041';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([18, 28]);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(canvasW/2 + canvasW*0.07, horizon);
+            ctx.lineTo(canvasW/2 + canvasW*0.41, canvasH);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(canvasW/2 - canvasW*0.023, horizon);
+            ctx.lineTo(canvasW/2 - canvasW*0.14, canvasH);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([20, 25]);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(canvasW/2 + canvasW*0.023, horizon);
+            ctx.lineTo(canvasW/2 + canvasW*0.14, canvasH);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+            
+            for(let i = 0; i < 8; i++) {
+                let yPos = horizon + (i * (canvasH - horizon) / 8);
+                ctx.beginPath();
+                ctx.moveTo(canvasW/2 - 35, yPos);
+                ctx.lineTo(canvasW/2 + 35, yPos);
+                ctx.strokeStyle = '#aab7c4';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        function checkCollision(enemy) {
+            const playerY = canvasH - PLAYER_FIXED_Y_OFFSET;
+            const playerScale = getCarScale(playerY);
+            const playerX = getCarX(playerLane, playerY);
+            const playerWidth = 50 * playerScale;
+            const playerHeight = 75 * playerScale;
+            
+            const enemyX = enemy.x;
+            const enemyY = enemy.y;
+            const enemyWidth = enemy.width;
+            const enemyHeight = enemy.height;
+            
+            if(!enemyX || !enemyWidth) return false;
+            
+            const playerRect = {
+                x: playerX - playerWidth/2.2,
+                y: playerY - playerHeight/2.3,
+                w: playerWidth,
+                h: playerHeight
+            };
+            
+            const enemyRect = {
+                x: enemyX - enemyWidth/2.2,
+                y: enemyY - enemyHeight/2.3,
+                w: enemyWidth,
+                h: enemyHeight
+            };
+            
+            const overlapPercent = calculateOverlapPercentage(playerRect, enemyRect);
+            const isNearPlayer = enemyY > canvasH - 210;
+            
+            return overlapPercent > 25 && isNearPlayer;
+        }
+
+        function updateEnemies() {
+            for(let i = 0; i < enemiesVehicles.length; i++) {
+                const enemy = enemiesVehicles[i];
+                enemy.y += currentGameSpeed * 7;
+                
+                if(enemy.y > canvasH + 150) {
+                    enemy.y = -120 - Math.random() * 100;
+                    enemy.lane = Math.floor(Math.random() * 3);
+                    if(!isInvincible) {
+                        totalScore++;
+                        scoreSpan.innerText = totalScore;
+                        // التحقق من نجمة جديدة
+                        checkStarMilestone(totalScore);
+                    }
+                }
+                
+                drawCar(enemy.lane, enemy.y, true);
+                
+                if(isGameAlive && !isInvincible) {
+                    if(checkCollision(enemy)) {
+                        isGameAlive = false;
+                        if(animationRequestId) cancelAnimationFrame(animationRequestId);
+                        if(countdownInterval) clearInterval(countdownInterval);
+                        setTimeout(() => {
+                            alert(`💥 تصادم! 💥\n\nتخطيت ${totalScore} سيارة\nحصلت على ${starTotal} ⭐\nاضغط OK للعب مجدداً`);
+                            location.reload();
+                        }, 30);
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function startSafetyCountdown() {
+            isInvincible = true;
+            let countdown = 3;
+            safetyBadge.style.display = 'block';
+            safetyBadge.innerHTML = `🛡️ أمان ${countdown}`;
+            
+            if(countdownInterval) clearInterval(countdownInterval);
+            
+            countdownInterval = setInterval(() => {
+                countdown--;
+                if(countdown >= 1) {
+                    safetyBadge.innerHTML = `🛡️ أمان ${countdown}`;
+                } else {
+                    clearInterval(countdownInterval);
+                    safetyBadge.style.display = 'none';
+                    isInvincible = false;
+                    countdownInterval = null;
+                }
+            }, 1000);
+        }
+
+        function mainGameLoop() {
+            if(canvasW === 0 || canvasH === 0) {
+                updateCanvasSize();
+                if(canvasW === 0 || canvasH === 0) {
+                    animationRequestId = requestAnimationFrame(mainGameLoop);
+                    return;
+                }
+                resetEnemies();
+            }
+            
+            ctx.clearRect(0, 0, canvasW, canvasH);
+            ctx.fillStyle = '#1a4d2a';
+            ctx.fillRect(0, 0, canvasW, canvasH);
+            
+            drawRaceTrack();
+            
+            const continueGame = updateEnemies();
+            if(!continueGame) return;
+            
+            drawCar(playerLane, canvasH - PLAYER_FIXED_Y_OFFSET, false);
+            
+            ctx.font = "bold 18px monospace";
+            ctx.fillStyle = "#ffeaa7";
+            ctx.fillText(`⚡ سرعة ${currentSpeedLevel + 1}`, 15, 40);
+            
+            animationRequestId = requestAnimationFrame(mainGameLoop);
+        }
+
+        function initializeAndStart() {
+            updateCanvasSize();
+            resetEnemies();
+            isGameAlive = true;
+            totalScore = 0;
+            starTotal = 0;
+            playerLane = 1;
+            currentSpeedLevel = 0;
+            currentGameSpeed = speedLevels[0];
+            scoreSpan.innerText = "0";
+            starCountSpan.innerText = "0";
+            
+            const speedButton = document.getElementById('speedCtrlBtn');
+            if(speedButton) speedButton.innerHTML = "⚡ 1";
+            
+            startSafetyCountdown();
+            
+            if(animationRequestId) cancelAnimationFrame(animationRequestId);
+            mainGameLoop();
+        }
+
+        function bindControls() {
+            const leftButton = document.getElementById('leftBtn');
+            const rightButton = document.getElementById('rightBtn');
+            const speedButton = document.getElementById('speedCtrlBtn');
+            
+            const moveLeft = (e) => {
+                e.preventDefault();
+                if(isGameAlive && playerLane > 0) playerLane--;
+            };
+            
+            const moveRight = (e) => {
+                e.preventDefault();
+                if(isGameAlive && playerLane < 2) playerLane++;
+            };
+            
+            const changeSpeed = (e) => {
+                e.preventDefault();
+                if(!isGameAlive) return;
+                currentSpeedLevel = (currentSpeedLevel + 1) % 5;
+                currentGameSpeed = speedLevels[currentSpeedLevel];
+                speedButton.innerHTML = `⚡ ${currentSpeedLevel + 1}`;
+            };
+            
+            leftButton.addEventListener('click', moveLeft);
+            leftButton.addEventListener('touchstart', moveLeft, { passive: false });
+            rightButton.addEventListener('click', moveRight);
+            rightButton.addEventListener('touchstart', moveRight, { passive: false });
+            speedButton.addEventListener('click', changeSpeed);
+            speedButton.addEventListener('touchstart', changeSpeed, { passive: false });
+        }
+
+        window.addEventListener('resize', () => updateCanvasSize());
+        window.addEventListener('load', () => {
+            bindControls();
+            initializeAndStart();
+        });
+    })();
+</script>
 </body>
 </html>
