@@ -1,50 +1,43 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-// تعريف الحارات: -1 (يسار), 0 (وسط), 1 (يمين)
-const lanes = [-120, 0, 120];
+const roadImg = new Image(); roadImg.src = 'road.png';
+const cars = [new Image(), new Image(), new Image()];
+cars[0].src = 'car_blue.png'; cars[1].src = 'car_red.png'; cars[2].src = 'car_green.png';
+
 let gameRunning = false, playerLane = 1, gameSpeed = 5, enemies = [];
+const lanes = [-120, 0, 120];
 
 function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight * 0.75; }
 window.onresize = resize; resize();
 
 function update() {
     if (!gameRunning) return;
-    
-    // تحريك السيارات والالتزام بالحارات
     enemies.forEach(e => e.z += gameSpeed);
     enemies = enemies.filter(e => e.z < 20);
-    
-    // إضافة سيارات فقط في الحارات (لا يوجد عشوائية في X)
-    if (Math.random() < 0.03) {
-        let laneIndex = Math.floor(Math.random() * 3);
-        enemies.push({lane: laneIndex, z: 0});
-    }
+    if (Math.random() < 0.05) enemies.push({lane: Math.floor(Math.random()*3), z: 0, img: cars[Math.floor(Math.random()*3)]});
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(roadImg, 0, 0, canvas.width, canvas.height);
     
-    // رسم الطريق والحارات
-    drawRoad();
+    enemies.forEach(e => drawCar(e.img, lanes[e.lane], e.z));
+    drawCar(cars[0], lanes[playerLane], 10);
     
-    // رسم الأعداء
-    enemies.forEach(e => drawCar(enemyImg, lanes[e.lane], e.z));
-    
-    // رسم سيارتك (تتحرك حسب الحارة)
-    drawCar(playerImg, lanes[playerLane], 10);
-    
-    // كشف التصادم (إذا كانت السيارة في نفس الحارة وعلى بعد قريب)
-    enemies.forEach(e => {
-        if (e.z > 8 && e.z < 12 && e.lane === playerLane) {
-            gameRunning = false;
-            document.getElementById('msg').innerText = "Game Over!";
-            document.getElementById('overlay').style.display = 'flex';
-        }
-    });
-    
+    enemies.forEach(e => { if(e.z > 8 && e.z < 12 && e.lane === playerLane) gameRunning = false; });
     requestAnimationFrame(update);
 }
 
-// التحكم بالحارات (الضغط يحرك السيارة لحارة واحدة فقط)
+function drawCar(img, x, z) {
+    let scale = 1 / (1 + z * 0.3);
+    let px = x * scale + canvas.width / 2;
+    let py = (canvas.height / 2) + (z * 30 * scale);
+    ctx.drawImage(img, px - 30*scale, py - 50*scale, 60*scale, 100*scale);
+}
+
 document.getElementById('left').ontouchstart = () => { if(playerLane > 0) playerLane--; };
 document.getElementById('right').ontouchstart = () => { if(playerLane < 2) playerLane++; };
-
-// (بقية الدوال مثل drawCar و drawRoad تبقى كما أرسلتها لك في الرد السابق)
+document.getElementById('accel').ontouchstart = () => gameSpeed = 10;
+document.getElementById('accel').ontouchend = () => gameSpeed = 5;
+document.getElementById('brake').ontouchstart = () => gameSpeed = 2;
+document.getElementById('brake').ontouchend = () => gameSpeed = 5;
+document.getElementById('newGame').onclick = () => { gameRunning = true; enemies = []; update(); };
+document.getElementById('pause').onclick = () => gameRunning = !gameRunning;
