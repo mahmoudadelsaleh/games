@@ -2,18 +2,22 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let gameRunning = false, playerX = 0, gameSpeed = 5, enemies = [];
 
-function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight * 0.85; }
+// تعديل أبعاد الرسم لتناسب المساحة المتاحة للعبة
+function resize() { 
+    canvas.width = window.innerWidth; 
+    canvas.height = window.innerHeight * 0.75; 
+}
 window.onresize = resize; resize();
 
 function drawCar(x, z, color) {
     let scale = 1 / (1 + z * 0.8);
     let px = x * scale + canvas.width / 2;
-    let py = (canvas.height / 3) + (z * 20 * scale);
+    let py = (canvas.height / 3) + (z * 15 * scale); // تعديل نقطة التلاشي
     let w = 50 * scale, h = 80 * scale;
     
     ctx.fillStyle = color;
     ctx.fillRect(px - w/2, py - h/2, w, h);
-    ctx.fillStyle = "#222"; // Roof
+    ctx.fillStyle = "#222"; 
     ctx.fillRect(px - w/3, py - h/4, w*0.6, h*0.3);
 }
 
@@ -29,6 +33,7 @@ function update() {
     requestAnimationFrame(update);
 }
 
+// التحكم
 document.getElementById('left').ontouchstart = () => playerX -= 50;
 document.getElementById('right').ontouchstart = () => playerX += 50;
 document.getElementById('accel').ontouchstart = () => gameSpeed = 10;
@@ -36,4 +41,4 @@ document.getElementById('accel').ontouchend = () => gameSpeed = 5;
 document.getElementById('brake').ontouchstart = () => gameSpeed = 2;
 document.getElementById('brake').ontouchend = () => gameSpeed = 5;
 document.getElementById('newGame').onclick = () => { gameRunning = true; update(); };
-document.getElementById('pause').onclick = () => gameRunning = !gameRunning;
+document.getElementById('pause').onclick = () => { gameRunning = !gameRunning; if(gameRunning) update(); };
