@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D Racing - نجوم وكلاكس كل 10 سيارات</title>
+    <title>3D Racing - إصلاح التصادم الوهمي</title>
     <style>
         * {
             margin: 0;
@@ -197,13 +197,11 @@
         let playerLane = 1;
         let currentSpeedLevel = 0;
         let totalScore = 0;
-        let starTotal = 0;      // عدد النجمات (كل 10 سيارات)
+        let starTotal = 0;
         let isGameAlive = true;
         let isInvincible = true;
         let animationRequestId = null;
         let countdownInterval = null;
-        
-        // مؤقت لإخفاء تأثير النجمة
         let starTimeout = null;
 
         const speedLevels = [0.1, 0.2, 0.35, 0.5, 0.7];
@@ -213,13 +211,8 @@
         let canvasW = 0, canvasH = 0;
         const PLAYER_FIXED_Y_OFFSET = 85;
 
-        // دالة لتشغيل صوت الكلاكس
         function playHonkSound() {
             try {
-                // إنشاء عنصر audio مؤقت
-                const audio = new Audio();
-                // استخدام AudioContext كبديل (أكثر توافقاً)
-                // نبضة صوتية بسيطة باستخدام Web Audio API (لا تحتاج ملفات)
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
@@ -235,16 +228,14 @@
                 gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
                 oscillator.stop(audioContext.currentTime + 0.5);
                 
-                // إعادة تشغيل AudioContext إذا كان معلقاً
                 if (audioContext.state === 'suspended') {
                     audioContext.resume();
                 }
             } catch(e) {
-                console.log("صوت غير مدعوم في هذا المتصفح");
+                console.log("صوت غير مدعوم");
             }
         }
 
-        // دالة إظهار النجمة
         function showStar() {
             starEffect.style.opacity = '1';
             starEffect.style.transform = 'translate(-50%, -50%) scale(1.2)';
@@ -256,7 +247,6 @@
             }, 500);
         }
 
-        // دالة إضافة نجمة جديدة
         function addStar() {
             starTotal++;
             starCountSpan.innerText = starTotal;
@@ -264,11 +254,17 @@
             playHonkSound();
         }
 
-        // التحقق من نجمة جديدة (كل 10 سيارات)
         function checkStarMilestone(newScore) {
             if (newScore > 0 && newScore % 10 === 0) {
                 addStar();
             }
+        }
+
+        // إعادة تعيين بيانات التصادم لسيارة معينة
+        function resetEnemyCollisionData(enemy) {
+            enemy.width = 0;
+            enemy.height = 0;
+            enemy.x = 0;
         }
 
         function resetEnemies() {
@@ -279,7 +275,8 @@
                     y: -80 - (i * 140),
                     width: 0,
                     height: 0,
-                    x: 0
+                    x: 0,
+                    valid: false  // إضافة خاصية لتحديد صحة بيانات التصادم
                 });
             }
         }
@@ -352,11 +349,13 @@
             const angle = getCarAngle(lane, yPosition);
             
             if(isOpponent) {
+                // تحديث بيانات العدو بعد الرسم (فقط إذا كانت السيارة داخل الشاشة تقريباً)
                 const enemy = enemiesVehicles.find(e => Math.abs(e.y - yPosition) < 10);
-                if(enemy) {
+                if(enemy && yPosition > -50 && yPosition < canvasH + 100) {
                     enemy.width = carWidth;
                     enemy.height = carHeight;
                     enemy.x = carX;
+                    enemy.valid = true;
                 }
             }
             
@@ -457,6 +456,11 @@
         }
 
         function checkCollision(enemy) {
+            // التحقق من صحة بيانات التصادم
+            if (!enemy.valid || enemy.width === 0 || enemy.height === 0 || !enemy.x) {
+                return false;
+            }
+            
             const playerY = canvasH - PLAYER_FIXED_Y_OFFSET;
             const playerScale = getCarScale(playerY);
             const playerX = getCarX(playerLane, playerY);
@@ -468,7 +472,10 @@
             const enemyWidth = enemy.width;
             const enemyHeight = enemy.height;
             
-            if(!enemyX || !enemyWidth) return false;
+            // التأكد من أن العدو في نطاق التصادم المعقول
+            if (enemyY < canvasH - 300 || enemyY > canvasH - 50) {
+                return false;
+            }
             
             const playerRect = {
                 x: playerX - playerWidth/2.2,
@@ -485,9 +492,8 @@
             };
             
             const overlapPercent = calculateOverlapPercentage(playerRect, enemyRect);
-            const isNearPlayer = enemyY > canvasH - 210;
             
-            return overlapPercent > 25 && isNearPlayer;
+            return overlapPercent > 25;
         }
 
         function updateEnemies() {
@@ -495,20 +501,27 @@
                 const enemy = enemiesVehicles[i];
                 enemy.y += currentGameSpeed * 7;
                 
+                // عندما تخرج السيارة من الشاشة
                 if(enemy.y > canvasH + 150) {
+                    // إعادة تعيين بيانات التصادم قبل تغيير الموقع
+                    resetEnemyCollisionData(enemy);
+                    
                     enemy.y = -120 - Math.random() * 100;
                     enemy.lane = Math.floor(Math.random() * 3);
+                    enemy.valid = false;  // بيانات التصادم غير صالحة حتى يتم رسمها مرة أخرى
+                    
                     if(!isInvincible) {
                         totalScore++;
                         scoreSpan.innerText = totalScore;
-                        // التحقق من نجمة جديدة
                         checkStarMilestone(totalScore);
                     }
                 }
                 
+                // رسم السيارة (هنا سيتم تحديث بيانات التصادم إذا كانت السيارة في نطاق الرسم)
                 drawCar(enemy.lane, enemy.y, true);
                 
-                if(isGameAlive && !isInvincible) {
+                // التحقق من التصادم فقط إذا كانت السيارة قريبة من اللاعب
+                if(isGameAlive && !isInvincible && enemy.y > canvasH - 250 && enemy.y < canvasH - 30) {
                     if(checkCollision(enemy)) {
                         isGameAlive = false;
                         if(animationRequestId) cancelAnimationFrame(animationRequestId);
