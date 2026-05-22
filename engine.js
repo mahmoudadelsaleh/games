@@ -1,22 +1,16 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+// المتغيرات الأساسية للمنظور
+const perspective = 0.8; // عامل التلاشي
+const vanishingPointX = canvas.width / 2;
+const vanishingPointY = canvas.height / 3;
 
-// إعداد أبعاد الـ Canvas ديناميكياً
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight * 0.85;
+function drawPerspectiveCar(car) {
+    // حساب المقياس (Scale) بناءً على بعد السيارة (z)
+    // كلما زادت Z، صغرت السيارة وتحركت نحو نقطة التلاشي
+    let scale = 1 / (1 + car.z * perspective);
+    let projectedX = (car.x - vanishingPointX) * scale + vanishingPointX;
+    let projectedY = (car.y - vanishingPointY) * scale + vanishingPointY;
+    
+    // رسم السيارة بناءً على الإسقاط الجديد
+    ctx.fillStyle = car.color;
+    ctx.fillRect(projectedX - (25 * scale), projectedY - (40 * scale), 50 * scale, 80 * scale);
 }
-window.onresize = resize;
-resize();
-
-// هيكل السيارة ثلاثية الأبعاد
-function drawCar(x, y, scale, color) {
-    ctx.fillStyle = color;
-    // هنا سنقوم برسم السيارة بناءً على الـ scale لتعطي إيحاء العمق
-    ctx.fillRect(x - (25 * scale), y - (40 * scale), 50 * scale, 80 * scale);
-}
-
-// التحكم في الأزرار
-document.getElementById('newGame').ontouchstart = () => confirm("Start new game?") && initGame();
-document.getElementById('pause').ontouchstart = () => togglePause();
-// ... (باقي المنطق سيأتي تباعاً)
