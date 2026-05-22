@@ -3,20 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Race Game</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Pro Racing Game</title>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #2c3e50; font-family: sans-serif; touch-action: none; }
+        canvas { display: block; width: 100vw; height: 100vh; background: #34495e; }
+        
+        /* UI Overlay */
+        #ui { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.6); color: white; }
+        .btn { padding: 20px 40px; font-size: 24px; border: none; border-radius: 50px; cursor: pointer; background: #e74c3c; color: white; font-weight: bold; }
+        
+        /* Controls */
+        #controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-around; padding: 0 10px; box-sizing: border-box; }
+        .ctl-btn { width: 70px; height: 70px; border-radius: 50%; border: 3px solid white; background: rgba(255,255,255,0.2); color: white; font-size: 20px; }
+        .accel { background: #27ae60; }
+        .brake { background: #c0392b; }
+    </style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
-    <div id="ui-layer">
-        <button id="startBtn">Start Game</button>
-        <div id="controls">
-            <button id="left">◀</button>
-            <button id="brake">Brake</button>
-            <button id="accel">Accel</button>
-            <button id="right">▶</button>
-        </div>
-    </div>
-    <script src="game.js"></script>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="ui">
+    <h1 id="msg">Race Game</h1>
+    <button class="btn" id="startBtn">Start Engine</button>
+</div>
+
+<div id="controls">
+    <button class="ctl-btn" id="left">◀</button>
+    <button class="ctl-btn brake" id="brake">Brake</button>
+    <button class="ctl-btn accel" id="accel">Accel</button>
+    <button class="ctl-btn" id="right">▶</button>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let player = { x: canvas.width/2 - 25, y: canvas.height - 150, w: 50, h: 80, speed: 0 };
+    let enemies = [];
+    let gameSpeed = 5;
+    let running = false;
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw Road
+        ctx.fillStyle = "#2c3e50";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Player
+        ctx.fillStyle = "#3498db";
+        ctx.fillRect(player.x, player.y, player.w, player.h);
+        
+        // Enemies
+        ctx.fillStyle = "#e67e22";
+        enemies.forEach(e => ctx.fillRect(e.x, e.y, e.w, e.h));
+        
+        if (running) {
+            player.x += player.speed;
+            enemies.forEach((e, i) => {
+                e.y += gameSpeed;
+                if (e.y > canvas.height) enemies.splice(i, 1);
+                if (e.x < player.x + 50 && e.x + 50 > player.x && e.y < player.y + 80 && e.y + 80 > player.y) {
+                    running = false;
+                    document.getElementById('msg').innerText = "CRASHED!";
+                    document.getElementById('startBtn').innerText = "Try Again";
+                    document.getElementById('ui').style.display = "flex";
+                }
+            });
+            requestAnimationFrame(draw);
+        }
+    }
+
+    function spawn() {
+        if (!running) return;
+        let lane = Math.floor(Math.random() * 3) * (canvas.width / 3) + 20;
+        enemies.push({ x: lane, y: -100, w: 50, h: 80 });
+        setTimeout(spawn, 1000);
+    }
+
+    document.getElementById('startBtn').onclick = () => {
+        running = true;
+        enemies = [];
+        player.x = canvas.width/2 - 25;
+        document.getElementById('ui').style.display = "none";
+        spawn();
+        draw();
+    };
+
+    // Mobile Controls
+    const set = (id, s) => document.getElementById(id).ontouchstart = () => player.speed = s;
+    const end = (id) => document.getElementById(id).ontouchend = () => player.speed = 0;
+    
+    set('left', -7); end('left');
+    set('right', 7); end('right');
+    document.getElementById('accel').ontouchstart = () => gameSpeed = 10;
+    document.getElementById('accel').ontouchend = () => gameSpeed = 5;
+    document.getElementById('brake').ontouchstart = () => gameSpeed = 2;
+    document.getElementById('brake').ontouchend = () => gameSpeed = 5;
+</script>
 </body>
 </html>
