@@ -1,24 +1,21 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>سباق السيارات</title>
-    <link rel="manifest" href="manifest.json">
-    <style>
-        body { margin: 0; background: #222; display: flex; flex-direction: column; align-items: center; }
-        canvas { background: #444; display: block; border-left: 5px solid #fff; border-right: 5px solid #fff; }
-        .controls { display: flex; gap: 10px; margin-top: 10px; }
-        button { padding: 20px 30px; font-size: 18px; touch-action: manipulation; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Race Game</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <canvas id="gameCanvas" width="300" height="500"></canvas>
-    <div class="controls">
-        <button id="left">يسار</button>
-        <button id="brake">فرامل</button>
-        <button id="accel">سرعة</button>
-        <button id="right">يمين</button>
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui-layer">
+        <button id="startBtn">Start Game</button>
+        <div id="controls">
+            <button id="left">◀</button>
+            <button id="brake">Brake</button>
+            <button id="accel">Accel</button>
+            <button id="right">▶</button>
+        </div>
     </div>
     <script src="game.js"></script>
 </body>
