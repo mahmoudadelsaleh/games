@@ -1,44 +1,42 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-let gameRunning = false, playerX = 0, gameSpeed = 5, enemies = [];
+let gameRunning = false, playerX = 150, gameSpeed = 5, enemies = [];
 
-// تعديل أبعاد الرسم لتناسب المساحة المتاحة للعبة
-function resize() { 
-    canvas.width = window.innerWidth; 
-    canvas.height = window.innerHeight * 0.75; 
-}
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight * 0.75; }
 window.onresize = resize; resize();
 
-function drawCar(x, z, color) {
-    let scale = 1 / (1 + z * 0.8);
-    let px = x * scale + canvas.width / 2;
-    let py = (canvas.height / 3) + (z * 15 * scale); // تعديل نقطة التلاشي
-    let w = 50 * scale, h = 80 * scale;
-    
+function drawCar(x, y, color, isPlayer) {
     ctx.fillStyle = color;
-    ctx.fillRect(px - w/2, py - h/2, w, h);
-    ctx.fillStyle = "#222"; 
-    ctx.fillRect(px - w/3, py - h/4, w*0.6, h*0.3);
+    // رسم السيارة بشكل عمودي
+    ctx.fillRect(x, y, 50, 80); 
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(x + 5, y + 10, 40, 20); // نافذة أمامية
 }
 
 function update() {
     if (!gameRunning) return;
-    enemies.forEach(e => e.z += gameSpeed);
-    enemies = enemies.filter(e => e.z < 20);
-    if (Math.random() < 0.05) enemies.push({x: (Math.floor(Math.random()*3)-1)*100, z: 0, color: 'red'});
+    enemies.forEach(e => e.y += gameSpeed);
+    enemies = enemies.filter(e => e.y < canvas.height);
+    if (Math.random() < 0.05) enemies.push({x: Math.random() * (canvas.width - 50), y: -100, color: 'red'});
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    enemies.forEach(e => drawCar(e.x, e.z, e.color));
-    drawCar(playerX, 10, 'blue');
+    enemies.forEach(e => drawCar(e.x, e.y, e.color));
+    drawCar(playerX, canvas.height - 150, 'blue', true);
+    
+    // كشف التصادم
+    enemies.forEach(e => {
+        if (e.y > canvas.height - 180 && Math.abs(e.x - playerX) < 50) gameRunning = false;
+    });
+    
     requestAnimationFrame(update);
 }
 
 // التحكم
-document.getElementById('left').ontouchstart = () => playerX -= 50;
-document.getElementById('right').ontouchstart = () => playerX += 50;
+document.getElementById('left').ontouchstart = () => playerX -= 20;
+document.getElementById('right').ontouchstart = () => playerX += 20;
 document.getElementById('accel').ontouchstart = () => gameSpeed = 10;
 document.getElementById('accel').ontouchend = () => gameSpeed = 5;
 document.getElementById('brake').ontouchstart = () => gameSpeed = 2;
 document.getElementById('brake').ontouchend = () => gameSpeed = 5;
-document.getElementById('newGame').onclick = () => { gameRunning = true; update(); };
-document.getElementById('pause').onclick = () => { gameRunning = !gameRunning; if(gameRunning) update(); };
+document.getElementById('newGame').onclick = () => { gameRunning = true; enemies=[]; update(); };
+document.getElementById('pause').onclick = () => gameRunning = !gameRunning;
