@@ -1,0 +1,4 @@
+#game-container { text-align: center; margin-top: 20px; }
+canvas { background: #333; border: 5px solid #555; }
+#controls { margin-top: 10px; }
+button { padding: 15px 25px; margin: 0 5px; cursor: pointer; }
